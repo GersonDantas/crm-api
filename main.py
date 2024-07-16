@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import pandas as pd
 from gensim.models import Word2Vec
 from gensim.similarities import WmdSimilarity
 
-app = Flask(__name__)
+app = FastAPI()
 
 # Carregar o CSV usando pandas
 df = pd.read_csv("qa_base.csv")
@@ -19,13 +20,12 @@ model = Word2Vec(sentences=questions, vector_size=100, window=5, min_count=1, wo
 # Criando o índice de similaridade
 index = WmdSimilarity(questions, model.wv, num_best=3)
 
-@app.route('/ask', methods=['POST'])
-def ask_question():
-    query = request.json.get('query')
-    if not query:
-        return jsonify({'error': 'No query provided'}), 400
-    
-    query_tokens = query.split()
+class Query(BaseModel):
+    query: str
+
+@app.post("/ask")
+async def ask_question(query: Query):
+    query_tokens = query.query.split()
     similar_responses = index[query_tokens]  # Pegando os 3 documentos mais similares
     
     threshold = 0.7  # Defina um limiar de similaridade adequado para sua aplicação
