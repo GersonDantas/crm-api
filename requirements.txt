@@ -1,5 +1,7 @@
 fastapi[all]
-gensim
 pandas
+gensim
 uvicorn
+pydantic
+pot
 scipy==1.10.1
