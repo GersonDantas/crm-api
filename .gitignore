@@ -1,2 +1,5 @@
 .~lock.qa_base.csv#
 .vscode
+
+venv
+__pycache__
