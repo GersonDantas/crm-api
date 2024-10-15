@@ -15,11 +15,11 @@ app = FastAPI()
 class QueryModel(BaseModel):
     query: str
 
-# CSV Path
+# Caminho do CSV
 csv_path = os.path.join(os.path.dirname(__file__), 'qa_base.csv')
 model_path = os.path.join(os.path.dirname(__file__), 'word2vec.model')
 
-# Load or train the Word2vec model
+# Carregar ou treinar o modelo Word2Vec
 try:
     if os.path.exists(model_path):
         model = Word2Vec.load(model_path)
@@ -36,7 +36,7 @@ except Exception as e:
     logger.error(f"Erro ao carregar ou treinar o modelo Word2Vec: {e}")
     raise
 
-# Load the CSV and create pairs-response
+# Carregar o CSV e criar pares pergunta-resposta
 try:
     if 'df' not in locals():
         df = pd.read_csv(csv_path)
@@ -51,7 +51,7 @@ except Exception as e:
     logger.error(f"Erro no pré-processamento: {e}")
     raise
 
-# Create the similarity index
+# Criar o índice de similaridade
 try:
     index = WmdSimilarity(questions, model.wv, num_best=3)
     logger.info("Índice de similaridade criado com sucesso.")
@@ -59,7 +59,7 @@ except Exception as e:
     logger.error(f"Erro ao criar o índice de similaridade: {e}")
     raise
 
-# Function to recover similar answers
+# Função para recuperar respostas similares
 def retrieve_info(query):
     query_tokens = query.lower().split()
     try:
@@ -69,17 +69,17 @@ def retrieve_info(query):
         logger.error(f"Erro ao recuperar informações: {e}")
         raise
 
-# Initialize the Hugging Face text generation pipeline
+# Inicializar o pipeline de geração de texto da Hugging Face
 qa_generator = pipeline('text-generation', model='distilgpt2')
 
-# Function to generate a smart response based on similar answers
+# Função para gerar uma resposta inteligente com base nas respostas similares
 def generate_response(query):
     try:
         similar_responses = retrieve_info(query)
         combined_context = " ".join(similar_responses)
         generated_response = qa_generator(
             f"Baseado no contexto: {combined_context}\nResposta:",
-            max_length=150,
+            max_new_tokens=50,
             num_return_sequences=1,
             truncation=True,
             pad_token_id=qa_generator.tokenizer.eos_token_id
