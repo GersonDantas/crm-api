@@ -5,3 +5,5 @@ uvicorn
 pydantic
 pot
 scipy==1.10.1
+transformers
+torch
