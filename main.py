@@ -77,7 +77,13 @@ def generate_response(query):
     try:
         similar_responses = retrieve_info(query)
         combined_context = " ".join(similar_responses)
-        generated_response = qa_generator(f"Baseado no contexto: {combined_context}\nResposta:", max_length=100, num_return_sequences=1)
+        generated_response = qa_generator(
+            f"Baseado no contexto: {combined_context}\nResposta:",
+            max_length=150,
+            num_return_sequences=1,
+            truncation=True,
+            pad_token_id=qa_generator.tokenizer.eos_token_id
+        )
         return generated_response[0]['generated_text']
     except Exception as e:
         logger.error(f"Erro ao gerar resposta: {e}")
