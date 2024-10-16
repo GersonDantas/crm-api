@@ -6,6 +6,7 @@ from gensim.models import Word2Vec
 from gensim.similarities import WmdSimilarity
 import os
 from transformers import pipeline
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -70,19 +71,23 @@ def retrieve_info(query):
         raise
 
 # Inicializar o pipeline de geração de texto da Hugging Face
-qa_generator = pipeline('text-generation', model='distilgpt2')
+tokenizer_model = 'distilgpt2'
+qa_generator = pipeline('text-generation', model=tokenizer_model)
 
-# Função para gerar uma resposta inteligente com base nas respostas similares
-def generate_response(query):
+# Função assíncrona para gerar uma resposta inteligente com base nas respostas similares
+async def generate_response(query):
     try:
         similar_responses = retrieve_info(query)
         combined_context = " ".join(similar_responses)
-        generated_response = qa_generator(
-            f"Baseado no contexto: {combined_context}\nResposta:",
-            max_new_tokens=50,
-            num_return_sequences=1,
-            truncation=True,
-            pad_token_id=qa_generator.tokenizer.eos_token_id
+        loop = asyncio.get_event_loop()
+        generated_response = await loop.run_in_executor(
+            None,
+            lambda: qa_generator(
+                f"Baseado no contexto: {combined_context}\nResposta:",
+                max_new_tokens=30,
+                num_return_sequences=1,
+                pad_token_id=qa_generator.tokenizer.eos_token_id
+            )
         )
         return generated_response[0]['generated_text']
     except Exception as e:
@@ -92,7 +97,7 @@ def generate_response(query):
 @app.post("/ask")
 async def ask_question(query: QueryModel):
     try:
-        response = generate_response(query.query)
+        response = await generate_response(query.query)
         return {"response": response}
     except Exception as e:
         logger.error(f"Erro na rota /ask: {e}")

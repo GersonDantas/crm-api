@@ -4,6 +4,6 @@ gensim
 uvicorn
 pydantic
 pot
-scipy==1.10.1
+scipy==1.11.2
 transformers
 torch
