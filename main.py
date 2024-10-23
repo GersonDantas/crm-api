@@ -5,7 +5,8 @@ import pandas as pd
 from gensim.models import Word2Vec
 from gensim.similarities import WmdSimilarity
 import os
-from transformers import pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 import asyncio
 
 logging.basicConfig(level=logging.INFO)
@@ -70,26 +71,29 @@ def retrieve_info(query):
         logger.error(f"Erro ao recuperar informações: {e}")
         raise
 
-# Inicializar o pipeline de geração de texto da Hugging Face
-tokenizer_model = 'distilgpt2'
-qa_generator = pipeline('text-generation', model=tokenizer_model)
+# Inicializar o modelo e tokenizer da Hugging Face
+model_name = 'distilgpt2'
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+text_generation_model = AutoModelForCausalLM.from_pretrained(model_name)
 
 # Função assíncrona para gerar uma resposta inteligente com base nas respostas similares
 async def generate_response(query):
     try:
         similar_responses = retrieve_info(query)
-        combined_context = " ".join(similar_responses)
+        combined_context = ' '.join(similar_responses)
         loop = asyncio.get_event_loop()
+        input_ids = tokenizer.encode(combined_context, return_tensors="pt")
         generated_response = await loop.run_in_executor(
             None,
-            lambda: qa_generator(
-                f"Baseado no contexto: {combined_context}\nResposta:",
-                max_new_tokens=30,
-                num_return_sequences=1,
-                pad_token_id=qa_generator.tokenizer.eos_token_id
+            lambda: text_generation_model.generate(
+                input_ids,
+                max_length=input_ids.shape[1] + 50,
+                do_sample=True,
+                pad_token_id=tokenizer.eos_token_id
             )
         )
-        return generated_response[0]['generated_text']
+        response_text = tokenizer.decode(generated_response[0], skip_special_tokens=True)
+        return response_text
     except Exception as e:
         logger.error(f"Erro ao gerar resposta: {e}")
         raise

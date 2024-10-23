@@ -4,6 +4,7 @@ gensim
 uvicorn
 pydantic
 pot
-scipy==1.11.2
+scipy
 transformers
 torch
+click
